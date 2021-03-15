@@ -1,0 +1,123 @@
+name: Release Build
+
+on: push
+
+jobs:
+  build-pyinstaller:
+    name: Build PyInstaller/Streamlit app
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - run: |
+          echo "RUNNER_OS_SHORT=windows" >> $env:GITHUB_ENV
+          echo "BUILD_SCRIPT=build.ps1" >> $env:GITHUB_ENV
+          echo "VENV_ACTIVATE=.\venv\Scripts\Activate.ps1" >> $env:GITHUB_ENV
+        if: ${{ runner.os == 'Windows' }}
+
+      - run: |
+          echo "RUNNER_OS_SHORT=macos" >> $GITHUB_ENV
+          echo "BUILD_SCRIPT=build.sh" >> $GITHUB_ENV
+          echo "VENV_ACTIVATE=. ./venv/bin/activate" >> $GITHUB_ENV
+        if: ${{ runner.os == 'macOS' }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: List files
+        run: ls
+  
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8.8'
+          architecture: 'x64'
+
+      - run: python --version
+      - run: python -m venv venv
+      - run: |
+          ${{ env.VENV_ACTIVATE}}
+          which pip
+
+      - run: |
+          ${{ env.VENV_ACTIVATE}}
+          pip install -r ${{ env.RUNNER_OS_SHORT }}-requirements.txt
+
+      - run: |
+          ${{ env.VENV_ACTIVATE}}
+          cd build && ./${{ env.BUILD_SCRIPT }}
+
+      - run: 7z a -r -tzip mosaic-streamlit-runtime.zip build/dist/run
+        
+      - uses: actions/upload-artifact@v2
+        with:
+          name: mosaic-streamlit-${{ env.RUNNER_OS_SHORT }}-runtime.zip
+          path: mosaic-streamlit-runtime.zip
+          if-no-files-found: error
+
+  build-electron:
+    name: Build Electron app
+    needs: build-pyinstaller
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - run: |
+          echo "RUNNER_OS_SHORT=windows" >> $env:GITHUB_ENV
+        if: ${{ runner.os == 'Windows' }}
+
+      - run: |
+          echo "RUNNER_OS_SHORT=macos" >> $GITHUB_ENV
+        if: ${{ runner.os == 'macOS' }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - run: ls
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: mosaic-streamlit-${{ env.RUNNER_OS_SHORT }}-runtime.zip
+          path: run
+
+      - run: ls run
+      - run: ls -R run
+
+      - run: 7z x -tzip run/mosaic-streamlit-runtime.zip
+
+      - run: ls && ls build
+      - run: ls build/dist
+      - run: ls build/dist/run
+      - run: ls mosaic-streamlit
+      - run: mv build/dist/run mosaic-streamlit/run
+      - run: ls mosaic-streamlit/run
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - run: node --version
+      - run: cd mosaic-streamlit && yarn install && yarn run make
+      - run: ls mosaic-streamlit
+      - run: ls mosaic-streamlit/run
+      - run: ls -R mosaic-streamlit/out
+        
+      - run: 7z a -r -tzip mosaic-streamlit-${{ env.RUNNER_OS_SHORT }}-setup.zip mosaic-streamlit/out/make
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: mosaic-streamlit-${{ env.RUNNER_OS_SHORT }}-setup
+          path: mosaic-streamlit-${{ env.RUNNER_OS_SHORT }}-setup.zip
+          if-no-files-found: error
+
+      - run: 7z a -r -tzip mosaic-streamlit-${{ env.RUNNER_OS_SHORT }}-out.zip mosaic-streamlit/out
+      - uses: actions/upload-artifact@v2
+        with:
+          name: mosaic-streamlit-${{ env.RUNNER_OS_SHORT }}-out
+          path: mosaic-streamlit-${{ env.RUNNER_OS_SHORT }}-out.zip
+          if-no-files-found: error
