@@ -510,21 +510,41 @@ def get_annotations(variants):
 
 
 def metrics(sample):
+    def _metric_value_or_error(obj, attr=None, divide_by=None):
+        try:
+            if attr:
+                obj = obj[attr]
+
+            if divide_by:
+                return obj / divide_by
+
+            return obj
+        except Exception:
+            return 0
+
     prot_metrics = sample.protein.metadata
     dna_metrics = sample.dna.metadata
 
-    prot_total_reads = prot_metrics["n_read_pairs"]
+    prot_total_reads = _metric_value_or_error(prot_metrics, "n_read_pairs")
 
     st.text(f"name {sample.name}")
     st.text(f"total-reads: {prot_total_reads}")
-    st.text(f"reads-after-cutadapt: {prot_metrics['n_read_pairs_trimmed']}")
-    st.text(f"%reads-trimmed: {prot_metrics['n_read_pairs_trimmed'] / prot_total_reads}")
-    st.text(f"reads-barcode-correction: {prot_metrics['n_read_pairs_valid_cell_barcodes']}")
+    st.text(f"reads-after-cutadapt: {_metric_value_or_error(prot_metrics, 'n_read_pairs_trimmed')}")
     st.text(
-        f"%reads-barcode: {prot_metrics[f'n_read_pairs_valid_cell_barcodes'] / prot_total_reads}"
+        f"%reads-trimmed: {_metric_value_or_error(prot_metrics, 'n_read_pairs_trimmed', divide_by=prot_total_reads)}"
     )
-    st.text(f"reads-ab-correction: {prot_metrics['n_read_pairs_valid_ab_barcodes']}")
-    st.text(f"%reads-ab: {prot_metrics['n_read_pairs_valid_ab_barcodes'] / prot_total_reads}")
+    st.text(
+        f"reads-barcode-correction: {_metric_value_or_error(prot_metrics, 'n_read_pairs_valid_cell_barcodes')}"
+    )
+    st.text(
+        f"%reads-barcode: {_metric_value_or_error(prot_metrics, 'n_read_pairs_valid_cell_barcodes', divide_by=prot_total_reads)}"
+    )
+    st.text(
+        f"reads-ab-correction: {_metric_value_or_error(prot_metrics, 'n_read_pairs_valid_ab_barcodes')}"
+    )
+    st.text(
+        f"%reads-ab: {_metric_value_or_error(prot_metrics, 'n_read_pairs_valid_ab_barcodes', divide_by=prot_total_reads)}"
+    )
 
     if sample.protein_raw is None:
         prot_read_count = 0
@@ -567,7 +587,13 @@ def metrics(sample):
             / cell_df.shape[1]
         )
 
-    dna_reads_to_merged_cells = sample.cnv.layers["read_counts"].sum() / dna_metrics["n_read_pairs"]
+    try:
+        dna_reads_to_merged_cells = (
+            sample.cnv.layers["read_counts"].sum() / dna_metrics["n_read_pairs"]
+        )
+    except Exception:
+        dna_reads_to_merged_cells = 0
+
     prot_reads_to_cells = sample.protein.layers["read_counts"].sum() / candidate_reads
     prot_reads_to_cells_total_reads = sample.protein.layers["read_counts"].sum() / prot_total_reads
     prot_bar_per_cell = cells_after_merge / len(sample.dna.row_attrs["barcode"])
@@ -590,11 +616,22 @@ def metrics(sample):
 
     st.text(f"candidate-barcodes: {num_candidate_prot_bars}")
     st.text(f"candidate-reads: {candidate_reads}")
-    st.text(f"%candidate-reads {candidate_reads / prot_total_reads:0.3f}")
+
+    st.text(
+        f"%candidate-reads {_metric_value_or_error(candidate_reads, divide_by=prot_total_reads):0.3f}"
+    )
+
     st.text(f"cells-after-merge: {cells_after_merge}")
 
     st.text(f"%reads-to-cells-of-valid-barcodes {prot_reads_to_cells:0.3f}")
-    st.text(f"%reads-to-cells-of-total: {prot_reads_to_cells_total_reads:0.3f}")
+
+    try:
+        st.text(f"%reads-to-cells-of-total: {prot_reads_to_cells_total_reads:0.3f}")
+    except TypeError:
+        st.text(
+            f"%reads-to-cells-of-total error, not available for {prot_reads_to_cells_total_reads}"
+        )
+
     st.text(f"%valid-ab-barcodes-that-are-cells: {prot_bar_per_cell:0.3f}")
     st.text(f"%reads-by-aggregates: {percentage_aggregates:.3f}")
     st.text(f"avg-ab-reads: {avg_reads_per_ab_cell}")
@@ -605,9 +642,16 @@ def metrics(sample):
 
     st.text(f"%dna-reads-to-cells: {dna_reads_to_cells:0.3f}")
     st.text(f"%dna-reads-to-merged-cells: {dna_reads_to_merged_cells:0.3f}")
-    st.text(f"dna-reads-per-cell-per-amp: {sample.cnv.layers['read_counts'].mean().mean():.2f}")
-    st.text(f"ado-rate: {sample.dna.metadata['ado_rate']}")
-    st.text(f"avg-dna-panel-uniformity {sample.dna.metadata['avg_panel_uniformity']}")
+
+    try:
+        st.text(f"dna-reads-per-cell-per-amp: {sample.cnv.layers['read_counts'].mean().mean():.2f}")
+    except AttributeError:
+        st.text(f"dna-reads-per-cell-per-amp error, not available for cnv.layers.read_counts")
+
+    st.text(f"ado-rate: {_metric_value_or_error(sample.dna.metadata, 'ado_rate')}")
+    st.text(
+        f"avg-dna-panel-uniformity {_metric_value_or_error(sample.dna.metadata, 'avg_panel_uniformity')}"
+    )
     st.text(f"0.2x-dna-panel-uniformity {uniformity}")
 
 
