@@ -2,7 +2,6 @@ import os
 import shutil
 
 import streamlit as st
-
 import defaults as DFT
 
 STATUS = None
@@ -23,13 +22,21 @@ def info(msg, component=st, color=DFT.BLUE):
     component.markdown(f"<span style='color:{color}'>{msg}</span>", unsafe_allow_html=True)
 
 
-def error(msg):
+def error(msg, func=None, render=None):
     global ERROR
+
     ERROR.markdown(
         f"<p style='font-size:18px'><span style='color:{DFT.RED}'><b>{msg}</b></span></p>",
         unsafe_allow_html=True,
     )
+
+    status("Done.")
+
     st.stop()
+
+
+def retry_failed_steps():
+    pass
 
 
 def status(msg):

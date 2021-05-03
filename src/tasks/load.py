@@ -59,11 +59,14 @@ def render():
 
         col1, col2 = st.beta_columns([0.3, 1])
         with col1:
-            load_raw = st.checkbox("Raw")
+            # load_raw = st.checkbox("Raw")
+            load_raw = False
         with col2:
-            apply_filter = st.checkbox("Filter", False)
+            # apply_filter = st.checkbox("Filter", False)
+            apply_filter = False
 
-        typed_name = st.text_input("Save, download or delete the given file", value="")
+        # typed_name = st.text_input("Save, download or delete the given file", value="")
+        typed_name = ""
 
         def _get_file_from_name(typed_name):
             if len(typed_name) == 0:
@@ -84,20 +87,21 @@ def render():
         col1, col2, col3 = st.beta_columns([0.25, 0.4, 0.4])
         with col1:
             st.markdown("")
-            should_save = st.button("Save")
+            # should_save = st.button("Save")
+            should_save = False
         with col2:
             st.markdown("")
-            if st.button("Download"):
-                download_path = _get_file_from_name(typed_name)
-                interface.download(download_path)
+            # if st.button("Download"):
+                # download_path = _get_file_from_name(typed_name)
+                # interface.download(download_path)
         with col3:
             st.markdown("")
-            if st.button("Delete"):
-                typed_name = _get_file_from_name(typed_name)
-                if file is not None and typed_name == file:
-                    interface.error("Cannot delete the file used in the current analysis.")
-                os.remove(typed_name)
-                interface.rerun()
+            # if st.button("Delete"):
+            #     typed_name = _get_file_from_name(typed_name)
+            #     if file is not None and typed_name == file:
+            #         interface.error("Cannot delete the file used in the current analysis.")
+            #     os.remove(typed_name)
+            #     interface.rerun()
 
     return file, load_raw, apply_filter, should_save, typed_name, info
 
@@ -118,8 +122,6 @@ def load(path, load_raw, apply_filter):
         sample.protein.add_col_attr("id", new_ids)
         if sample.protein_raw is not None:
             sample.protein_raw.add_col_attr("id", new_ids)
-
-    init_defaults(sample)
 
     return sample
 

@@ -46,7 +46,7 @@ def sample_hash(s):
 
 MOHASH_COMPLETE = {moprotein: assay_hash, modna: assay_hash, mosample: sample_hash}
 
-ROOT = pathlib.Path(__file__).parent
+ROOT = pathlib.Path(__file__).parent.parent
 H5_FOLDER = ROOT / "h5"
 if GUI_FRONTEND_RUNNING:
     H5_FOLDER = pathlib.Path.home() / "mosaic-streamlit-h5"
@@ -67,18 +67,6 @@ BLUE = "#1C5C6C"
 # ----------- Loading
 S3 = "s3"
 LOCAL = "local"
-INITIALIZE = "__mosaic_initialize"
-
-# ----------- Preprocessing
-MIN_DP = 10
-MIN_GQ = 30
-MIN_VAF = 20
-MIN_STD = 20
-
-PREPROCESS_ARGS = "__mosaic_preprocess_args"
-DROP_IDS = "__mosaic_drop_ids"
-KEEP_IDS = "__mosaic_keep_ids"
-ALL_IDS = "__mosaic_all_ids"
 
 # ----------- Preparing
 PREPPED = "__mosaic_prepped"
